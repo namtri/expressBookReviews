@@ -5,6 +5,8 @@ let users = require("./auth_users.js").users;
 const public_users = express.Router();
 
 /**
+ * Wanted a quick method to format the books object ahead of returning
+ * the result to the user.
  * 
  * @param {object} dataToFormat The list of books to stringify
  * @param {boolean} excludeReviews Defaults to true, excludes the reviews from the formatted data
@@ -46,49 +48,102 @@ public_users.post("/register", (req,res) => {
 
 // Get the book list available in the shop
 public_users.get('/',function (req, res) {
-    return res.status(200).json(formattedJSON(books));
+    const getBooks = () => {
+        return new Promise((resolve, reject) => {
+            resolve(books);
+        });
+    };
+
+    getBooks()
+        .then((books) => {
+            res.json(formattedJSON(books));
+        })
+        .catch((error) => {
+            res.status(500).json({ "message": "Could not retrieve data"});
+        });
+    // synchronous response below
+    // return res.status(200).json(formattedJSON(books));
 });
 
 // Get book details based on ISBN
 public_users.get('/isbn/:isbn',function (req, res) {
     const isbn = req.params.isbn;
 
-    let bookByISBN = Object.fromEntries(
-        Object.entries(books).filter(([key, book]) => key === isbn)
-    );
+    const getBooks = (isbn) => {
+        return new Promise((resolve, reject) => {
+            let bookByISBN = Object.fromEntries(
+                Object.entries(books).filter(([key, book]) => key === isbn)
+            );
+            
+            if (Object.keys(bookByISBN).length) {
+                resolve(bookByISBN);
+            } else {
+                reject(new Error(`Book with ISBN ${isbn} not found`));
+            }
+        });
+    };
 
-    return (bookByISBN ? 
-        res.status(200).json(formattedJSON(bookByISBN)) :
-        res.status(404).json({ message: `Book with ISBN ${isbn} not found`})
-    );
+    getBooks(isbn)
+        .then((book) => {
+            res.json(formattedJSON(book));
+        })
+        .catch((error) => {
+            res.status(404).json({ "message": error.message });
+        });
  });
   
 // Get book details based on author
 public_users.get('/author/:author',function (req, res) {
     const author = req.params.author;
 
-    let booksByAuthor = Object.fromEntries(
-        Object.entries(books).filter(([key, book]) => book.author === author)
-    );
-    
-    return (booksByAuthor ?
-        res.status(200).json(formattedJSON(booksByAuthor)) :
-        res.status(404).json({ message: `No books found by author: ${author}` })
-    );
+    const getBooks = (author) => {
+        return new Promise((resolve, reject) => {
+            let booksByAuthor = Object.fromEntries(
+                Object.entries(books).filter(([key, book]) => book.author === author)
+            );
+
+            if (Object.keys(booksByAuthor).length > 0) {
+                resolve(booksByAuthor);
+            } else {
+                reject(new Error(`No books found by author: ${author}`));
+            }
+        });
+    };
+
+    getBooks(author)
+        .then((books) => {
+            res.json(formattedJSON(books));
+        })
+        .catch((error) => {
+            res.status(404).json({ "message": error.message });
+        });
 });
 
 // Get all books based on title
 public_users.get('/title/:title',function (req, res) {
     const title = req.params.title;
 
-    let booksByTitle = Object.fromEntries(
-        Object.entries(books).filter(([key, book]) => book.title === title)
-    );
+    const getBook = (title) => {
+        return new Promise((resolve, reject) => {
+            let booksByTitle = Object.fromEntries(
+                Object.entries(books).filter(([key, book]) => book.title === title)
+            );
 
-    return ( booksByTitle ?
-        res.status(200).json(formattedJSON(booksByTitle)) :
-        res.status(404).json({ message: `${title} not found` })
-    ); 
+            if (Object.keys(booksByTitle).length > 0) {
+                resolve(booksByTitle);
+            } else {
+                reject(new Error(`${title} not found`));
+            }
+        });
+    };
+
+    getBook(title)
+        .then((book) => {
+            res.json(formattedJSON(book));
+        })
+        .catch((error) => {
+            res.status(404).json({ "message": error.message});
+        });
 });
 
 //  Get book review
