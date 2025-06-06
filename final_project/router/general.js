@@ -18,6 +18,8 @@ const formattedJSON = (dataToFormat, excludeReviews=true) => {
         ?
         Object.fromEntries(
             Object.entries(dataToFormat).filter(([key, book]) => {
+                // the notes say the book details should contain: ISBN, Title, and Author.
+                // So delete the reviews for the public user output.
                 delete book.reviews;
                 return true;
             }), 
@@ -27,6 +29,7 @@ const formattedJSON = (dataToFormat, excludeReviews=true) => {
         dataToFormat
     );
 
+    // The teacher suggests using JSON.stringify?  ok...
     return JSON.stringify(formattedData, null, 4);
 };
 
